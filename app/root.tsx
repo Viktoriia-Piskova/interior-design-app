@@ -6,10 +6,15 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import { NavBar } from "./components/NavBar";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { useEffect, useState } from "react";
+import {
+  getCurrentUser as puterGetCurrentUser,
+  signIn as puterSignIn,
+  signOut as puterSignOut,
+} from "./lib/puter.action";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -34,7 +39,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <NavBar/>
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -43,8 +47,55 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const DEFAULT_AUTH_STATE: AuthState = {
+  isSignedIn: false,
+  userName: null,
+  userId: null,
+};
+
 export default function App() {
-  return <Outlet />;
+  const [authState, setAuthState] = useState<AuthState>(DEFAULT_AUTH_STATE);
+
+  const refreshAuth = async () => {
+    try {
+      const user = await puterGetCurrentUser() as {
+        username: string;
+        uuid: string;
+      } | null;
+      if (user) {
+        setAuthState({
+          isSignedIn: !!user,
+          userName: user.username || null,
+          userId: user.uuid || null,
+        });
+      } else {
+        setAuthState(DEFAULT_AUTH_STATE);
+      }
+      return !!user;
+    } catch (error) {
+      setAuthState(DEFAULT_AUTH_STATE);
+      return false;
+    }
+  };
+
+  const signIn = async () => {
+    await puterSignIn();
+    return await refreshAuth();
+  };
+
+  const signOut = async () => {
+    await puterSignOut();
+    return await refreshAuth();
+  };
+
+  useEffect(() => {
+    refreshAuth();
+  }, []);
+  return (
+    <main className="min-h-screen bg-background text-foreground relative z-10">
+      <Outlet context={{ ...authState, refreshAuth, signIn, signOut }} />;
+    </main>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
