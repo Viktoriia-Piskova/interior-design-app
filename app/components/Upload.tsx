@@ -19,18 +19,45 @@ const Upload = ({ onComplete }: UploadProps) => {
 
   const { isSignedIn } = useOutletContext<AuthContext>();
 
-  const intervalId = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const runProgress = () => {
-    intervalId.current = setInterval(() => {}, 50);
-  };
 
   const processFile = (file: File) => {
     if (!isSignedIn) return;
     setFile(file);
+    setProgress(10);
 
-    onComplete?.("TODO base64 image string");
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      setFile(null);
+      setProgress(0);
+    };
+
+    reader.onloadend = () => {
+      const base64data = reader.result as string;
+
+      intervalRef.current = setInterval(() => {
+        setProgress((prev) => {
+          const nextIntervalValue = prev + PROGRESS_INCREMENT;
+          if (nextIntervalValue >= 100) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+
+            timeoutRef.current = setTimeout(() => {
+              onComplete?.(base64data);
+            }, REDIRECT_DELAY_MS);
+
+            return 100;
+          }
+          return nextIntervalValue;
+        });
+      }, PROGRESS_INTERVAL_MS);
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
