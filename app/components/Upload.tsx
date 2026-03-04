@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router";
 import { CheckCircle2, ImageIcon, UploadIcon } from "lucide-react";
 
@@ -22,6 +22,13 @@ const Upload = ({ onComplete }: UploadProps) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const processFile = (file: File) => {
     if (!isSignedIn) return;
     setFile(file);
@@ -34,12 +41,15 @@ const Upload = ({ onComplete }: UploadProps) => {
       setProgress(0);
     };
 
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     reader.onloadend = () => {
       const base64data = reader.result as string;
 
       intervalRef.current = setInterval(() => {
         setProgress((prev) => {
-          const nextIntervalValue = prev + PROGRESS_INCREMENT;
+          const nextIntervalValue = prev + PROGRESS_INCREMENT; //15
           if (nextIntervalValue >= 100) {
             if (intervalRef.current) {
               clearInterval(intervalRef.current);
@@ -48,13 +58,13 @@ const Upload = ({ onComplete }: UploadProps) => {
 
             timeoutRef.current = setTimeout(() => {
               onComplete?.(base64data);
-            }, REDIRECT_DELAY_MS);
+            }, REDIRECT_DELAY_MS); //600
 
             return 100;
           }
           return nextIntervalValue;
         });
-      }, PROGRESS_INTERVAL_MS);
+      }, PROGRESS_INTERVAL_MS); //100ms
     };
 
     reader.readAsDataURL(file);
@@ -132,11 +142,11 @@ const Upload = ({ onComplete }: UploadProps) => {
             </div>
             <h3>{file.name}</h3>
             <div className="progress">
-              <div className="bar" style={{ width: `${progress}` }}></div>
-              <p className="status-text">
-                {progress < 100 ? "Analysing..." : "Redirecting..."}
-              </p>
+              <div className="bar" style={{ width: `${progress}%` }}></div>
             </div>
+            <p className="status-text">
+              {progress < 100 ? "Analysing..." : "Redirecting..."}
+            </p>
           </div>
         </div>
       )}
