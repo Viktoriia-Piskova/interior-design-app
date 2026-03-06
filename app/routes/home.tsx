@@ -3,6 +3,7 @@ import type { Route } from "./+types/home";
 import { NavBar } from "~/components/NavBar";
 import { Button } from "~/components/ui/Button";
 import Upload from "~/components/Upload"
+import { useNavigate } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,9 +13,11 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
 
   const handleUploadComplete = (base64Image: string) => {
-    console.log("handleUploadComplete", base64Image)
+    const imageId = new Date().toString();
+    navigate(`/visualizer/${imageId}`);
   }
 
   return (

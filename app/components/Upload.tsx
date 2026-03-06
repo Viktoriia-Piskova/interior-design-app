@@ -49,7 +49,7 @@ const Upload = ({ onComplete }: UploadProps) => {
 
       intervalRef.current = setInterval(() => {
         setProgress((prev) => {
-          const nextIntervalValue = prev + PROGRESS_INCREMENT; //15
+          const nextIntervalValue = prev + PROGRESS_INCREMENT;
           if (nextIntervalValue >= 100) {
             if (intervalRef.current) {
               clearInterval(intervalRef.current);
@@ -58,13 +58,13 @@ const Upload = ({ onComplete }: UploadProps) => {
 
             timeoutRef.current = setTimeout(() => {
               onComplete?.(base64data);
-            }, REDIRECT_DELAY_MS); //600
+            }, REDIRECT_DELAY_MS);
 
             return 100;
           }
           return nextIntervalValue;
         });
-      }, PROGRESS_INTERVAL_MS); //100ms
+      }, PROGRESS_INTERVAL_MS);
     };
 
     reader.readAsDataURL(file);
