@@ -479,6 +479,10 @@
                         p {
                             @apply text-zinc-500 text-sm mt-1;
                         }
+
+                        .error {
+                            @apply text-red-600 font-bold;
+                        }
                     }
                 }
             }
