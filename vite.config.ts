@@ -5,4 +5,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://optimistic-room-986.puter.work',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
