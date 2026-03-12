@@ -2,8 +2,10 @@ import { ArrowBigRight, ArrowUpRight, Clock, Layers } from "lucide-react";
 import type { Route } from "./+types/home";
 import { NavBar } from "~/components/NavBar";
 import { Button } from "~/components/ui/Button";
-import Upload from "~/components/Upload"
+import Upload from "~/components/Upload";
 import { useNavigate } from "react-router";
+import { useState, useRef, useEffect } from "react";
+import { createProject, getProjects } from "../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,13 +14,65 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+
 export default function Home() {
+  const [projects, setProjects] = useState<DesignItem[]>([]);
+  const [errorMesssage, setErrorMessage] = useState<string | null>(null);
+  const isCreatingProjectRef = useRef(false);
+
   const navigate = useNavigate();
 
-  const handleUploadComplete = (base64Image: string) => {
-    const imageId = new Date().toString();
-    navigate(`/visualizer/${imageId}`);
-  }
+  const handleUploadComplete = async (base64Image: string) => {
+    try {
+      if (isCreatingProjectRef.current) return false;
+      isCreatingProjectRef.current = true;
+      const newId = Date.now().toString();
+      const name = `Project ${newId}`;
+      const newItem: DesignItem = {
+        id: newId,
+        name,
+        sourceImage: base64Image,
+        renderedImage: null,
+        timestamp: Date.now(),
+      };
+
+      const savedItem = await createProject({
+        item: newItem,
+        visibility: "private",
+      });
+
+      if (!savedItem) {
+        console.error("Failed to create project");
+        setErrorMessage(
+          "Failed to create project. Please refresh the page and try again",
+        );
+        //return false; TODO remove development override
+      }
+
+      const displayItem = savedItem || newItem; //TODO remove development override
+      setProjects((prev) => [displayItem, ...prev]);
+      const state: VisualizerLocationState = {
+        initialImage: displayItem.sourceImage,
+        initialRender: displayItem.renderedImage || null,
+        name,
+      };
+
+      navigate(`/visualizer/${newId}`, { state });
+    } finally {
+      isCreatingProjectRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const items = await getProjects();
+      if (items) {
+        setProjects(items);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   return (
     <div className="home">
@@ -49,8 +103,9 @@ export default function Home() {
               </div>
               <h3>Upload your floor plan</h3>
               <p>Supports JPG, PNG formats up to 10MB</p>
+              {errorMesssage && <p className="error">{errorMesssage}</p>}
             </div>
-            <Upload onComplete={handleUploadComplete}/>
+            <Upload onComplete={handleUploadComplete} />
           </div>
         </div>
       </section>
@@ -63,28 +118,45 @@ export default function Home() {
             </div>
           </div>
           <div className="projects-grid">
-            <div className="project-card group">
-              <div className="preview">
-                <img
-                  src="https://roomify-mlhuk267-dfwu1i.puter.site/projects/1770803585402/rendered.png"
-                  alt="Project"
-                />
-                <div className="badge">
-                  <span>Community</span>
-                </div>
-              </div>
-              <div className="card-body">
-                <div>
-                  <h3>Project 1</h3>
-                  <div className="meta">
-                    <Clock size={12} />
-                    <span>{new Date("01.01.2026").toLocaleDateString()}</span>
-                    <span>By User123</span>
+            {projects.length >= 1 ? (
+              projects.map(
+                ({ id, name, renderedImage, sourceImage, timestamp }) => (
+                  <div
+                    key={id}
+                    className="project-card group"
+                    onClick={() => navigate(`/visualizer/${id}`)}>
+                    <div className="preview">
+                      <img src={renderedImage || sourceImage} alt="Project" />
+
+                      <div className="badge">
+                        <span>Community</span>
+                      </div>
+                    </div>
+
+                    <div className="card-body">
+                      <div>
+                        <h3>{name}</h3>
+
+                        <div className="meta">
+                          <Clock size={12} />
+                          <span>
+                            {new Date(timestamp).toLocaleDateString()}
+                          </span>
+                          <span>By Author</span>
+                        </div>
+                      </div>
+                      <div className="arrow">
+                        <ArrowUpRight size={18} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="arrow"><ArrowUpRight size={18}/></div>
+                ),
+              )
+            ) : (
+              <div>
+                <h3>No projects so far</h3>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
