@@ -46,10 +46,10 @@ export default function Home() {
         setErrorMessage(
           "Failed to create project. Please refresh the page and try again",
         );
-        //return false; TODO remove development override
+        return false;
       }
 
-      const displayItem = savedItem || newItem; //TODO remove development override
+      const displayItem = savedItem || newItem;
       setProjects((prev) => [displayItem, ...prev]);
       const state: VisualizerLocationState = {
         initialImage: displayItem.sourceImage,

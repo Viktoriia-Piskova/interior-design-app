@@ -1,3 +1,5 @@
+//the same code that runs on puter worker
+
 const PROJECT_PREFIX = 'roomify_project_';
 
 const jsonError = (status, message, extra = {}) => {
